@@ -1,0 +1,288 @@
+#include <iostream>
+#include <ctime>
+#include <cstdlib>
+#include <windows.h>
+#include <vector>
+#include <conio.h>
+
+using namespace std;
+
+class snake {
+private: int x, y, tail, dx, dy, pabaiga_x, pabaiga_y;
+		 int obuol_x, obuol_y, score, speed;
+		 bool go, eaten;
+		 char** map;
+
+		 vector<int> x_tail;
+		 vector<int> y_tail;
+
+public: snake();
+		~snake();
+		void start_game();
+		void draw();
+		void move();
+		void input();
+		void obuol();
+		void refresh();
+		void clear();
+		void hidecursor();
+		int check_over();
+		void game_over();
+};
+
+void snake::hidecursor()
+{
+	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO info;
+	info.dwSize = 100;
+	info.bVisible = FALSE;
+	SetConsoleCursorInfo(consoleHandle, &info);
+}
+
+// pradiniai duomenys
+snake::snake() {
+	go = true;
+	eaten = false;
+	speed = 100;
+	dx = 0;
+	dy = 1;
+	x = 6;
+	y = 25;
+	obuol_x = 1;
+	obuol_y = 1;
+	tail = 3;
+	score = 0;
+	
+}
+//istrina kadangi naudojam **
+snake::~snake() {
+	for (int i = 0; i < 26; i++) {
+		delete[] map[i];
+	}
+	delete[] map;
+}
+
+//pradeda zaidima
+void snake::start_game() {
+	hidecursor();
+	map = new char* [26];
+	for (int i = 0; i < 26; i++) {
+		map[i] = new char[81];
+	}
+	draw();
+}
+
+//sukuria zemelapi
+void snake::draw() {
+
+	//top ir bottom walls
+
+	for (int j = 1; j <= 80; j++) {
+		map[1][j] = char(178);
+		map[25][j] = char(178);
+	}
+
+	//right ir left walls
+
+	for (int i = 1; i <= 25; i++) {
+		map[i][1] = char(178);
+		map[i][80] = char(178);
+	}
+	for (int i = 2; i <= 24; i++) {
+		for (int j = 2; j <= 79; j++) {
+			map[i][j] = ' ';
+		}
+	}
+	//suteikiam galva ir tail
+
+	map[x][y] = char(79);
+	for (int i = 22; i <= 24; i++) {
+		y_tail.push_back(i);
+	}
+	for (int i = 0; i < tail; i++) {
+		x_tail.push_back(x);
+	}
+	for (int i = 0; i < tail; i++) {
+		map[x_tail[i]][y_tail[i]] = 'o';
+	}
+
+	//atspauzdiname visa map masyva
+
+	for (int i = 1; i <= 25; i++) {
+		for (int j = 1; j <= 80; j++) {
+			if (j == 80)
+				cout << map[i][j] << endl;
+			else
+				cout << map[i][j];
+		}
+	}
+
+	//sugeneruojam obulai naudojat laiko funkcija
+	obuol();
+
+	//movement
+	move();
+}
+
+void snake::refresh() {
+
+	//atnaujiname zemelapi su nauja pozicija
+
+	map[x][y] = char(79);
+	for (int i = 0; i < tail; i++) {
+		map[x_tail[i]][y_tail[i]] = 'o';
+	}
+
+	//atspauzdiname visa map masyva
+
+	for (int i = 1; i <= 25; i++) {
+		for (int j = 1; j <= 80; j++) {
+			if (j == 80)
+				cout << map[i][j] << endl;
+			else
+				cout << map[i][j];
+		}
+	}
+
+	move();
+}
+
+//generuojam obuol su laiko pagalba(random generatorius)
+void snake::obuol() {
+	srand((unsigned)time(NULL));
+	obuol_x = 2 + rand() % (24 - 2 + 1);
+	obuol_y = 2 + rand() % (79 - 2 + 1);
+	map[obuol_x][obuol_y] = 'o';
+}
+
+//ziuri ar gyvate neatsitrenke i siena, save
+
+int snake::check_over() {
+	if ((x == 1) || (x == 25) || (y == 1) || (y == 80)) {
+		return 1;
+	}
+	for (int i = 0; i < tail - 1; i++) {
+		if ((x_tail[i] == x) && (y_tail[i] == y))
+			return 1;
+	}
+	return 0;
+}
+
+void snake::game_over() {
+	system("cls");
+	cout << "GAME OVER" << endl;
+	cout << "You earned " << score << " POINTS" << endl;
+}
+//cls istrina duomenys
+void snake::clear() {
+	system("cls");
+}
+
+//snake movement
+
+void snake::move() {
+
+	//loop kol neatsitrenks
+	while (go == true) {
+
+		//atnaujina ktipti jeigu buvo paspaustas mightukas. Kitaip juda ta pacia kriptimi
+
+		if (_kbhit()) {
+			input();
+		}
+		//atnaujina galvos pozicija
+
+		cout << endl;
+		pabaiga_x = x;
+		pabaiga_y = y;
+		x = x + dx;
+		y = y + dy;
+
+		//jeigu obuolys suvalgytas sukuriam nauja obuoli
+		if ((x == obuol_x) && (y == obuol_y)) {
+			score = score + 10;
+			eaten = true;
+			map[obuol_x][obuol_y] = ' ';
+			obuol();
+		}
+
+		if (eaten == true) {
+			tail++;
+			x_tail.insert(x_tail.begin(), x_tail[0]);
+			y_tail.insert(y_tail.begin(), y_tail[0]);
+			eaten = false;
+		}
+
+		//sudarom uodega ir paziurim ar headx/y nekerta uodegos ar sienos
+
+		map[x_tail[0]][y_tail[0]] = ' ';
+		for (int i = 0; i < tail - 1; i++) {
+			x_tail[i] = x_tail[i + 1];
+			y_tail[i] = y_tail[i + 1];
+		}
+		x_tail[tail - 1] = pabaiga_x;
+		y_tail[tail - 1] = pabaiga_y;
+		if (check_over()) {
+			game_over();
+			go = false;
+			break;
+		}
+
+		//priklausomai nuo kiek tasku esi surinkes mazes laikas tarp tick
+
+		if (score > 50 && score <= 100) {
+			speed = 75;
+		}
+		else if (score > 100 && score <= 150) {
+			speed = 50;
+		}
+		else if (score > 150) {
+			speed = 25;
+		}
+		Sleep(speed);
+
+		//istrinam visus duomenys ir atnaujinam juos
+		clear();
+		refresh();
+	}
+}
+
+//keyboard input
+
+void snake::input() {
+	if (_kbhit()) {
+		char in = _getch();
+		switch (in) {
+		case 'd':
+		{
+			dx = 0;
+			dy = 1;
+			break;
+		}
+		case 'w':
+		{
+			dx = -1;
+			dy = 0;
+			break;
+		}
+		case 'a':
+		{
+			dx = 0;
+			dy = -1;
+			break;
+		}
+		case 's':
+		{
+			dx = 1;
+			dy = 0;
+			break;
+		}
+		}
+	}
+}
+
+void main() {
+	snake game;
+	game.start_game();
+	system("pause");
+}
